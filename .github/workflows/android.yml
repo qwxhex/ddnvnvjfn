@@ -24,30 +24,22 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # 1. Создаем buildozer.spec, если его нет
+          # 1. Если buildozer.spec нет — создаем его
           if [ ! -f buildozer.spec ]; then
             buildozer init
-            sed -i 's/# android.api = 31/android.api = 33/' buildozer.spec
-            sed -i 's/# android.minapi = 21/android.minapi = 24/' buildozer.spec
-            sed -i 's/# android.ndk = 25b/android.ndk = 25b/' buildozer.spec
-            sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
           fi
 
-          # 2. Подготавливаем структуру SDK и привязываем aidl
-          SDK_DIR="$HOME/.buildozer/android/platform/android-sdk"
-          mkdir -p "$SDK_DIR/build-tools/33.0.2"
-          ln -sf $(which aidl) "$SDK_DIR/build-tools/33.0.2/aidl"
+          # 2. Правим конфиг под стабильные версии SDK/NDK
+          sed -i 's/# android.api = 31/android.api = 33/' buildozer.spec
+          sed -i 's/# android.minapi = 21/android.minapi = 24/' buildozer.spec
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+          sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
+          
+          # Явно фиксируем NDK 25b, так как r28c ломает старые структуры путей sdkmanager
+          sed -i 's/# android.ndk = .*/android.ndk = 25b/' buildozer.spec
+          sed -i 's/android.ndk = .*/android.ndk = 25b/' buildozer.spec
 
-          # 3. Первый короткий запуск Buildozer для загрузки Command Line Tools
-          buildozer --allow-root android debug || true
-
-          # 4. Исправляем путь к sdkmanager (создаем симлинк из cmdline-tools в tools)
-          if [ -d "$SDK_DIR/cmdline-tools/latest/bin" ]; then
-            mkdir -p "$SDK_DIR/tools"
-            ln -sf "$SDK_DIR/cmdline-tools/latest/bin" "$SDK_DIR/tools/bin"
-          fi
-
-          # 5. Основная полная сборка
+          # 3. Запускаем сборку
           buildozer --allow-root -v android debug
 
       - name: Upload APK Artifact
