@@ -1,35 +1,34 @@
 name: Build Android APK
-on: [push]
+
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git python3-pip ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk
+          sudo apt update
+          sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl
           pip install --upgrade pip
           pip install "cython<3.0.0" "setuptools<70.0.0" buildozer
-
-      # --- ДОБАВЬ ЭТОТ ШАГ ---
-      - name: Install AIDL and Build Tools
-        run: |
-          sudo apt-get install -y android-sdk-platform-tools
-          # Подтягиваем build-tools с помощью sdkmanager
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;33.0.2" "platforms;android-33"
-          # Делаем симлинк, чтобы buildozer точно увидел aidl в PATH
-          sudo ln -sf $ANDROID_HOME/build-tools/33.0.2/aidl /usr/local/bin/aidl
-      # ------------------------
 
       - name: Build with Buildozer
         run: |
           buildozer --allow-root -v android debug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: bin/*.apk
+          
