@@ -33,14 +33,21 @@ jobs:
             sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
           fi
 
-          # 2. Создаем структуру каталогов SDK заранее
+          # 2. Подготавливаем структуру SDK и привязываем aidl
           SDK_DIR="$HOME/.buildozer/android/platform/android-sdk"
           mkdir -p "$SDK_DIR/build-tools/33.0.2"
-
-          # 3. Создаем симлинк на системный aidl внутрь структуры SDK
           ln -sf $(which aidl) "$SDK_DIR/build-tools/33.0.2/aidl"
 
-          # 4. Запускаем сборку
+          # 3. Первый короткий запуск Buildozer для загрузки Command Line Tools
+          buildozer --allow-root android debug || true
+
+          # 4. Исправляем путь к sdkmanager (создаем симлинк из cmdline-tools в tools)
+          if [ -d "$SDK_DIR/cmdline-tools/latest/bin" ]; then
+            mkdir -p "$SDK_DIR/tools"
+            ln -sf "$SDK_DIR/cmdline-tools/latest/bin" "$SDK_DIR/tools/bin"
+          fi
+
+          # 5. Основная полная сборка
           buildozer --allow-root -v android debug
 
       - name: Upload APK Artifact
@@ -48,4 +55,3 @@ jobs:
         with:
           name: app-release
           path: bin/*.apk
-          
