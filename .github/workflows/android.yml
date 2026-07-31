@@ -7,19 +7,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y build-essential libssl-dev libffi-dev libsqlite3-dev zlib1g-dev openjdk-17-jdk
-          pip install "cython<3.0.0" buildozer
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3-pip ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk
+          pip install --upgrade pip
+          pip install "cython<3.0.0" "setuptools<70.0.0" buildozer
+
+      # --- ДОБАВЬ ЭТОТ ШАГ ---
+      - name: Install AIDL and Build Tools
+        run: |
+          sudo apt-get install -y android-sdk-platform-tools
+          # Подтягиваем build-tools с помощью sdkmanager
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;33.0.2" "platforms;android-33"
+          # Делаем симлинк, чтобы buildozer точно увидел aidl в PATH
+          sudo ln -sf $ANDROID_HOME/build-tools/33.0.2/aidl /usr/local/bin/aidl
+      # ------------------------
 
       - name: Build with Buildozer
-        run: buildozer --allow-root -v android debug
+        run: |
+          buildozer --allow-root -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
