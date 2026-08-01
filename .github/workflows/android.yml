@@ -15,43 +15,25 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl
-          python3 -m pip install --upgrade pip setuptools
-          python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" buildozer
-
-      - name: Generate clean buildozer.spec
-        run: |
-          cat << 'EOF' > buildozer.spec
-          [app]
-          title = MyApp
-          package.name = myapp
-          package.domain = org.test
-          source.dir = .
-          source.include_exts = py,png,jpg,kv,atlas
-          version = 0.1
-          requirements = python3==3.11.0,kivy
-
-          orientation = portrait
-          fullscreen = 0
-
-          [buildozer]
-          log_level = 2
-          warn_on_root = 1
-
-          # Android specific settings
-          android.api = 33
-          android.minapi = 24
-          android.ndk = 25b
-          android.accept_sdk_license = True
-          android.archs = arm64-v8a
-          EOF
+          python3 -m pip install --upgrade pip
+          # Фиксируем стабильные версии инструментов
+          python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" "buildozer==2.1.0"
 
       - name: Build with Buildozer
         run: |
+          # Создаем базовый конфиг, если его нет
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+
+          # Сбрасываем старый кэш с Python 3.14
           buildozer distclean || true
+
+          # Запускаем сборку
           buildozer --allow-root -v android debug
 
       - name: Upload APK Artifact
