@@ -1,3 +1,5 @@
+import string
+import random
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
@@ -5,12 +7,38 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import ScreenManager, Screen
 
-# --- ФУНКЦИИ ШИФРОВАНИЯ (Здесь логика твоего шифра) ---
+ENGLISH_LETTERS = string.ascii_lowercase  # 'abcdefghijklmnopqrstuvwxyz'
+
 def encrypt_text(text):
-    return text[::-1]  # Пример: переворот строки (замени на свою функцию, если нужно)
+    if not text:
+        return ""
+    
+    result = []
+    i = 0
+    n = len(text)
+    
+    while i < n:
+        # Берём случайную порцию из 1 или 2 цифр/символов из исходного текста
+        chunk_size = random.choice([1, 2])
+        chunk = text[i:i + chunk_size]
+        result.append(chunk)
+        i += chunk_size
+        
+        # Добавляем порцию из 1 или 2 случайных английских букв
+        letter_count = random.choice([1, 2])
+        random_letters = "".join(random.choice(ENGLISH_LETTERS) for _ in range(letter_count))
+        result.append(random_letters)
+        
+    return "".join(result)
+
 
 def decrypt_text(text):
-    return text[::-1]  # Пример: переворот строки (замени на свою функцию, если нужно)
+    if not text:
+        return ""
+    
+    # Просто удаляем ВСЕ английские буквы (заглавные и строчные), оставляя исходные цифры/символы
+    clean_chars = [char for char in text if char not in string.ascii_letters]
+    return "".join(clean_chars)
 
 
 # --- ЭКРАН 1: ШИФРОВАНИЕ ---
@@ -21,10 +49,10 @@ class EncryptScreen(Screen):
 
         layout.add_widget(Label(text="Шифрование", font_size='20sp', size_hint_y=None, height='30dp'))
 
-        self.input_text = TextInput(hint_text="Введите текст для шифрования...", multiline=True)
+        self.input_text = TextInput(hint_text="Введите текст или цифры...", multiline=True)
         layout.add_widget(self.input_text)
 
-        # Ряд кнопок действий (увеличен размер для удобства)
+        # Ряд кнопок
         btn_layout = BoxLayout(size_hint_y=None, height='55dp', spacing=10)
         
         btn_encrypt = Button(text="Зашифровать", font_size='16sp')
@@ -66,7 +94,7 @@ class DecryptScreen(Screen):
         self.input_text = TextInput(hint_text="Введите зашифрованный текст...", multiline=True)
         layout.add_widget(self.input_text)
 
-        # Ряд кнопок действий
+        # Ряд кнопок
         btn_layout = BoxLayout(size_hint_y=None, height='55dp', spacing=10)
         
         btn_decrypt = Button(text="Расшифровать", font_size='16sp')
