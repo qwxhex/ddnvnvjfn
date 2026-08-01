@@ -15,17 +15,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies & AIDL
+      - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl
-          
-          # Пробрасываем aidl в системный PATH
-          sudo ln -sf /usr/bin/aidl /usr/local/bin/aidl || true
-
           python3 -m pip install --upgrade pip
-          # Ставим официальную стабильную версию 1.6.0
           python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" "buildozer==1.6.0"
+
+      - name: Prepare Android SDK structure for AIDL
+        run: |
+          # Создаем структуру каталогов build-tools, которую ищет Buildozer
+          SDK_TOOLS_DIR="$HOME/.buildozer/android/platform/android-sdk/build-tools/33.0.2"
+          mkdir -p "$SDK_TOOLS_DIR"
+          # Делаем симлинк системного aidl прямо в папку SDK Buildozer'а
+          ln -sf $(which aidl) "$SDK_TOOLS_DIR/aidl"
 
       - name: Build with Buildozer
         run: |
@@ -33,7 +36,7 @@ jobs:
             buildozer init
           fi
 
-          # Очищаем кэш от прошлых неудачных попыток
+          # Очищаем кэш от прошлых сборок
           buildozer distclean || true
 
           # Запуск сборки
