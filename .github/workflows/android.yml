@@ -18,17 +18,31 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl
+          sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl wget
           python3 -m pip install --upgrade pip
           python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" "buildozer==1.6.0"
 
-      - name: Prepare Android SDK structure for AIDL
+      - name: Setup Android SDK Tools (Fix Aidl and Sdkmanager)
         run: |
-          # Создаем структуру каталогов build-tools, которую ищет Buildozer
-          SDK_TOOLS_DIR="$HOME/.buildozer/android/platform/android-sdk/build-tools/33.0.2"
-          mkdir -p "$SDK_TOOLS_DIR"
-          # Делаем симлинк системного aidl прямо в папку SDK Buildozer'а
-          ln -sf $(which aidl) "$SDK_TOOLS_DIR/aidl"
+          SDK_DIR="$HOME/.buildozer/android/platform/android-sdk"
+          
+          # 1. Скачиваем официальные commandlinetools от Google
+          mkdir -p "$SDK_DIR/cmdline-tools"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
+          unzip -q cmdline.zip -d "$SDK_DIR/cmdline-tools"
+          mv "$SDK_DIR/cmdline-tools/cmdline-tools" "$SDK_DIR/cmdline-tools/latest"
+          rm cmdline.zip
+
+          # 2. Делаем симлинк для sdkmanager в устаревшую папку tools/bin (где его ищет Buildozer)
+          mkdir -p "$SDK_DIR/tools"
+          ln -sf "$SDK_DIR/cmdline-tools/latest/bin" "$SDK_DIR/tools/bin"
+
+          # 3. Подкладываем aidl в build-tools
+          mkdir -p "$SDK_DIR/build-tools/33.0.2"
+          ln -sf $(which aidl) "$SDK_DIR/build-tools/33.0.2/aidl"
+
+          # 4. Принимаем лицензии Android SDK
+          yes | "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" || true
 
       - name: Build with Buildozer
         run: |
@@ -36,8 +50,8 @@ jobs:
             buildozer init
           fi
 
-          # Очищаем кэш от прошлых сборок
-          buildozer distclean || true
+          # Включаем автоматический прием лицензий в buildozer.spec
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
 
           # Запуск сборки
           buildozer --allow-root -v android debug
