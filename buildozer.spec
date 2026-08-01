@@ -6,10 +6,10 @@
 [app]
 
 # (str) Title of your application
-title = My Application
+title = EggNoFugu
 
 # (str) Package name
-package.name = myapp
+package.name = eggnofugu
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.test
@@ -52,7 +52,7 @@ requirements = python3,kivy
 #presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = %(source.dir)s/icon.png
 
 # (list) Supported orientations
 # Valid options are: landscape, portrait, portrait-reverse, landscape-reverse, or all
