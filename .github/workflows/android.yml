@@ -15,34 +15,19 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Устанавливаем Java 17, которая необходима для нового sdkmanager
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl wget
+          sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip aidl
           python3 -m pip install --upgrade pip
           python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" "buildozer==1.6.0"
-
-      - name: Setup Android SDK Tools (Fix Aidl and Sdkmanager)
-        run: |
-          SDK_DIR="$HOME/.buildozer/android/platform/android-sdk"
-          
-          # 1. Скачиваем официальные commandlinetools от Google
-          mkdir -p "$SDK_DIR/cmdline-tools"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
-          unzip -q cmdline.zip -d "$SDK_DIR/cmdline-tools"
-          mv "$SDK_DIR/cmdline-tools/cmdline-tools" "$SDK_DIR/cmdline-tools/latest"
-          rm cmdline.zip
-
-          # 2. Делаем симлинк для sdkmanager в устаревшую папку tools/bin (где его ищет Buildozer)
-          mkdir -p "$SDK_DIR/tools"
-          ln -sf "$SDK_DIR/cmdline-tools/latest/bin" "$SDK_DIR/tools/bin"
-
-          # 3. Подкладываем aidl в build-tools
-          mkdir -p "$SDK_DIR/build-tools/33.0.2"
-          ln -sf $(which aidl) "$SDK_DIR/build-tools/33.0.2/aidl"
-
-          # 4. Принимаем лицензии Android SDK
-          yes | "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" || true
 
       - name: Build with Buildozer
         run: |
@@ -50,8 +35,14 @@ jobs:
             buildozer init
           fi
 
-          # Включаем автоматический прием лицензий в buildozer.spec
+          # Настройки под стабильный релиз
+          sed -i 's/# android.api = 31/android.api = 33/' buildozer.spec
+          sed -i 's/# android.minapi = 21/android.minapi = 24/' buildozer.spec
           sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+          sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
+
+          # Сбрасываем старый поврежденный кэш SDK
+          rm -rf ~/.buildozer/android/platform/android-sdk
 
           # Запуск сборки
           buildozer --allow-root -v android debug
