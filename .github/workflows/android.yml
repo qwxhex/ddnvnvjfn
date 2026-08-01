@@ -22,23 +22,36 @@ jobs:
           python3 -m pip install --upgrade pip setuptools
           python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" buildozer
 
+      - name: Generate clean buildozer.spec
+        run: |
+          cat << 'EOF' > buildozer.spec
+          [app]
+          title = MyApp
+          package.name = myapp
+          package.domain = org.test
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,atlas
+          version = 0.1
+          requirements = python3==3.11.0,kivy
+
+          orientation = portrait
+          fullscreen = 0
+
+          [buildozer]
+          log_level = 2
+          warn_on_root = 1
+
+          # Android specific settings
+          android.api = 33
+          android.minapi = 24
+          android.ndk = 25b
+          android.accept_sdk_license = True
+          android.archs = arm64-v8a
+          EOF
+
       - name: Build with Buildozer
         run: |
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          fi
-
-          # 1. Принудительно выставляем стабильные версии
-          sed -i 's/# android.api = 31/android.api = 33/' buildozer.spec
-          sed -i 's/# android.minapi = 21/android.minapi = 24/' buildozer.spec
-          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
-          sed -i 's/android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
-
-          # 2. Очищаем старый кэш с Python 3.14, если он успел создаться
           buildozer distclean || true
-
-          # 3. Запускаем сборку с явным указанием виртуального окружения Python 3.11
-          export PATH="$PYTHON:$PATH"
           buildozer --allow-root -v android debug
 
       - name: Upload APK Artifact
