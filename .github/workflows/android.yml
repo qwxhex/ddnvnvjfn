@@ -15,25 +15,27 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install system dependencies & AIDL
         run: |
           sudo apt update
           sudo apt install -y build-essential git ccache libffi-dev libssl-dev python3-dev zip unzip openjdk-17-jdk aidl
+          
+          # Пробрасываем aidl напрямую в системный PATH, чтобы Buildozer его точно нашел
+          sudo ln -sf /usr/bin/aidl /usr/local/bin/aidl || true
+
           python3 -m pip install --upgrade pip
-          # Фиксируем стабильные версии инструментов
           python3 -m pip install "cython<3.0.0" "setuptools<70.0.0" "buildozer==2.1.0"
 
       - name: Build with Buildozer
         run: |
-          # Создаем базовый конфиг, если его нет
           if [ ! -f buildozer.spec ]; then
             buildozer init
           fi
 
-          # Сбрасываем старый кэш с Python 3.14
+          # На всякий случай очищаем кэш с ошибочной сборкой
           buildozer distclean || true
 
-          # Запускаем сборку
+          # Запуск сборки
           buildozer --allow-root -v android debug
 
       - name: Upload APK Artifact
